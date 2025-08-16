@@ -26,7 +26,7 @@ async fn main() {
     let excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
 
     let database = SqlitePoolOptions::new()
-        .max_connections(80)
+        .max_connections(5)
         .connect(&database_url).await.expect("Wasn't able to connect or create the database using the given database_url");
 
     // TODO: Create tables
