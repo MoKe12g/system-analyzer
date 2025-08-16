@@ -23,13 +23,12 @@ async fn main() {
     // https://stackoverflow.com/questions/72763578/how-to-create-a-sqlite-database-with-rust-sqlx
     let database_url = "sqlite://data.db?mode=rwc";
     let root_dir = "/";
+    let excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
 
-    let pool = SqlitePoolOptions::new()
+    let database = SqlitePoolOptions::new()
         .max_connections(80)
-        .connect(&database_url).await;
-    let database = pool.unwrap();
-    // TODO: Write some code
-    let root:Vec<DirEntry> = fs::read_dir(root_dir).expect("Failed to read the given directory")
-        .filter(|entry| { !["tmp", "home", "proc", "dev", "sys"].contains(&entry.as_ref().unwrap().file_name().to_str().unwrap())}).collect();
-    println!("{:?}", (root));
+        .connect(&database_url).await.expect("Wasn't able to connect or create the database using the given database_url");
+
+    // TODO: Create tables
+    // TODO: Crate example data in tables
 }
