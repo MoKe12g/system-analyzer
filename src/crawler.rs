@@ -53,7 +53,7 @@ impl File {
     }
 }
 
-pub async fn get_files_from_directory(mut dir: ReadDir) -> Result<Vec<DirEntry>, Error> {
+pub async fn get_files_from_directory(mut dir: ReadDir) -> std::io::Result<Vec<DirEntry>> {
     // get files in directory
     let mut files: Vec<DirEntry> = Vec::new();
     while let Some(entry) = dir.next_entry().await? {
@@ -74,7 +74,7 @@ pub(crate) async fn crawl(input_file: &DirEntry, database: &Pool<Sqlite>) -> Res
     debug!("Added {} to the database", file.path);
     // TODO: Improve performance using https://patrickfreed.github.io/rust/2021/10/15/making-slow-rust-code-fast.html
     // continue crawl
-    if file_type.is_dir() {
+    if file_type.is_dir() && !file_type.is_symlink() {
         match fs::read_dir(input_file.path()).await {
             Ok(folder) => {
                 let files = get_files_from_directory(folder).await;

@@ -1,5 +1,6 @@
 mod crawler;
 
+use log::info;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
 use std::str::FromStr;
@@ -10,7 +11,11 @@ async fn main() -> anyhow::Result<()> {
     let database_filepath = "database.sqlite";
     let _database_url = format!("{}{}", "sqlite://",database_filepath);
     // Cannot crawl if database exists. Because it would make both crawl results useless in the process.
-    let database_exists = fs::metadata(database_filepath).await?.is_file();
+    let database_exists = match fs::metadata(database_filepath).await {
+        Ok(metadata) => metadata.is_file(), // because a sqlite database is not a directory
+        Err(_) => false,
+    };
+    if database_exists { info!("Database is already populated, therefore it will be read-only.") }
     let root_dir_str = "/home/quantenregen/Schreibtisch/test-bookworm/";
     let excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
 
@@ -54,6 +59,8 @@ async fn create_database_connection(database_url: String, read_only: bool) -> Re
         .connect_with(sqlite_options)
         .await?;
 
-    sqlx::migrate!().run(&database).await?;
+    if !read_only {
+        sqlx::migrate!().run(&database).await?;
+    }
     Ok(database)
 }
