@@ -6,11 +6,10 @@ use std::str::FromStr;
 use tokio::fs;
 
 #[tokio::main]
-async fn main() -> Result<(), sqlx::Error> {
+async fn main() -> anyhow::Result<()> {
     let _database_url = "sqlite://database.sqlite";
     let root_dir_str = "/home/quantenregen/Schreibtisch/test-bookworm/";
-    let _excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
-    let _threads = 4;
+    let excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
 
     let database = create_database_connection(_database_url).await?;
 
@@ -21,8 +20,8 @@ async fn main() -> Result<(), sqlx::Error> {
     let filtered_files = files.iter()
         .filter(|entry|
             {
-                !_excluded_dirs
-                    .contains(&entry.file_name().to_str().unwrap())
+                !excluded_dirs
+                    .contains(&entry.file_name().to_string_lossy().as_ref())
             })
         .collect::<Vec<_>>();
 
