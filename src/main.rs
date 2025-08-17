@@ -1,9 +1,11 @@
 mod crawler;
 
+use dpkg_query_json::dpkg_list_packages::DpkgListPackages;
 use log::info;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
 use std::str::FromStr;
+use std::string::String;
 use tokio::fs;
 
 #[tokio::main]
@@ -39,6 +41,16 @@ async fn main() -> anyhow::Result<()> {
     for file in filtered_files {
         crawler::crawl(file, &database).await?;
     }
+
+    // create list of installed packages via dpkg
+    let packages =
+        DpkgListPackages::new(
+            vec![
+                String::from("Package"),
+                String::from("Version"),
+                String::from("Status")],
+            vec![])
+            .json();
 
     // Test insertion as an example for using the database
     sqlx::query!("INSERT OR IGNORE INTO dpkg_packages (package_name, version, date_installed) VALUES (?, ?, CURRENT_TIMESTAMP)",
