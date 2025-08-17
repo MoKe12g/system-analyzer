@@ -10,12 +10,21 @@ async fn main() -> Result<(), sqlx::Error> {
     let _database_url = "sqlite://database.sqlite";
     let root_dir_str = "/";
     let _excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
+    let _threads = 4;
 
     let database = create_database_connection(_database_url).await?;
 
     let root_dir = fs::read_dir(root_dir_str).await?;
-
     let files = crawler::get_files_from_directory(root_dir).await?;
+
+    /*let threaded_rt = Runtime::new()?;
+    threaded_rt.block_on(async {
+        // crawl the file system for files and directories
+        */for file in &files {
+        crawler::crawl(file, &database).await?;
+    }/*
+        Ok::<(), Error>(())
+    })?;*/
 
     // filter virtual directories
     let filtered_files = files.iter()
