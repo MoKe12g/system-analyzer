@@ -1,6 +1,3 @@
-use std::fs;
-use std::fs::DirEntry;
-use std::ops::Index;
 use clap::Parser;
 use sqlx::sqlite::SqlitePoolOptions;
 
@@ -21,7 +18,7 @@ async fn main() {
 
     // ?mode=rwc does create the database if it doesn't exist
     // https://stackoverflow.com/questions/72763578/how-to-create-a-sqlite-database-with-rust-sqlx
-    let database_url = "sqlite://data.db?mode=rwc";
+    let database_url = "sqlite://data.sqlite?mode=rwc";
     let root_dir = "/";
     let excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
 
@@ -29,6 +26,10 @@ async fn main() {
         .max_connections(5)
         .connect(&database_url).await.expect("Wasn't able to connect or create the database using the given database_url");
 
-    // TODO: Create tables
-    // TODO: Crate example data in tables
+    // Run migrations (create tables, seed data, etc.)
+    // 1) cargo install sqlx-cli --no-default-features --features rustls,sqlite
+    // 2) sqlx migrate add init
+    // 3) put your SQL files under migrations
+    let migration_result = sqlx::migrate!().run(&database).await;
+    // TODO: Create example data in tables
 }
