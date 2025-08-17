@@ -1,5 +1,5 @@
 use async_recursion::async_recursion;
-use log::debug;
+use log::{debug, warn};
 use sqlx::Error;
 use sqlx::Pool;
 use sqlx::Sqlite;
@@ -7,6 +7,7 @@ use std::fs::{FileType, Metadata};
 use tokio::fs;
 use tokio::fs::{DirEntry, ReadDir};
 
+#[derive(Debug, Clone)]
 pub struct File
 {
     path: String,
@@ -27,20 +28,20 @@ impl File {
         }
     }
 
-    pub fn new(path: String, size: u64, is_folder: bool, package: Option<String>, is_changed: Option<bool>) -> Self {
-        File { path, size: size as i64, is_folder, package, is_changed }
+    pub fn new(path: String, size: i64, is_folder: bool, package: Option<String>, is_changed: Option<bool>) -> Self {
+        File { path, size, is_folder, package, is_changed }
     }
 
     pub fn get_path(&self) -> &String {
         &self.path
     }
 
-    pub fn get_size(&self) -> &i64 {
-        &self.size
+    pub fn get_size(&self) -> i64 {
+        self.size
     }
 
-    pub fn is_folder(&self) -> &bool {
-        &self.is_folder
+    pub fn is_folder(&self) -> bool {
+        self.is_folder
     }
 
     pub fn get_package(&self) -> &Option<String> {
@@ -83,10 +84,10 @@ pub(crate) async fn crawl(input_file: &DirEntry, database: &Pool<Sqlite>) -> Res
                             crawl(file, database).await?;
                         }
                     },
-                    Err(err) => { println!("Skipped files in Folder {} because error occurred. {:?}", file.path, err); }
+                    Err(err) => { warn!("Skipped files in Folder {} because error occurred. {:?}", file.path, err); }
                 }
             },
-            Err(err) => { println!("Skiepped {} because error occurred. {:?}", file.path, err); }
+            Err(err) => { warn!("Skipped {} because error occurred. {:?}", file.path, err); }
         }
     }
     Ok(())

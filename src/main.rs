@@ -7,16 +7,20 @@ use tokio::fs;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let _database_url = "sqlite://database.sqlite";
+    let database_filepath = "database.sqlite";
+    let _database_url = format!("{}{}", "sqlite://",database_filepath);
+    // Cannot crawl if database exists. Because it would make both crawl results useless in the process.
+    let database_exists = fs::metadata(database_filepath).await?.is_file();
     let root_dir_str = "/home/quantenregen/Schreibtisch/test-bookworm/";
     let excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
 
-    let database = create_database_connection(_database_url).await?;
+    let database = create_database_connection(_database_url, database_exists).await?;
 
     let root_dir = fs::read_dir(root_dir_str).await?;
     let files = crawler::get_files_from_directory(root_dir).await?;
 
     // filter virtual directories
+    // filters only at the top level because there shouldn't be more virtual directories further down
     let filtered_files = files.iter()
         .filter(|entry|
             {
@@ -27,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
 
 
     // crawl the file system for files and directories
-    for file in &filtered_files {
+    for file in filtered_files {
         crawler::crawl(file, &database).await?;
     }
 
@@ -38,14 +42,15 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn create_database_connection(database_url: &str) -> Result<Pool<Sqlite>, sqlx::Error> {
-    let sqlite_options = SqliteConnectOptions::from_str(database_url)?
+async fn create_database_connection(database_url: String, read_only: bool) -> Result<Pool<Sqlite>, sqlx::Error> {
+    let sqlite_options = SqliteConnectOptions::from_str(&database_url)?
         .foreign_keys(true)
         .create_if_missing(true)
+        .read_only(read_only)
         .journal_mode(SqliteJournalMode::Wal);
 
     let database = SqlitePoolOptions::new()
-        .max_connections(25)
+        .max_connections(10)
         .connect_with(sqlite_options)
         .await?;
 
