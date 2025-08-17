@@ -6,6 +6,6 @@ edition = "2024"
 [dependencies]
 async-recursion = "1.1.1"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
-tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros", "fs"] }
 log = "0.4.27"
 anyhow = "1.0.99"

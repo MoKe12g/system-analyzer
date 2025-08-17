@@ -68,20 +68,23 @@ pub(crate) async fn crawl(input_file: &DirEntry, database: &Pool<Sqlite>) -> Res
     let file_metadata = input_file.metadata().await?;
     // create entry in database
     let file = File::from_read_dir(input_file, &file_type, &file_metadata);
+    if file_type.is_symlink() {
+        return Ok(())
+    }
     sqlx::query!("INSERT INTO files (path, size, is_folder, package, is_changed) VALUES (?, ?, ?, ?, ?);",
-    file.path, file.size, file.is_folder, file.package, file.is_changed)
+        file.path, file.size, file.is_folder, file.package, file.is_changed)
         .execute(database).await?;
     debug!("Added {} to the database", file.path);
     // TODO: Improve performance using https://patrickfreed.github.io/rust/2021/10/15/making-slow-rust-code-fast.html
     // continue crawl
-    if file_type.is_dir() && !file_type.is_symlink() {
+    if file_type.is_dir() {
         match fs::read_dir(input_file.path()).await {
             Ok(folder) => {
                 let files = get_files_from_directory(folder).await;
                 match files {
                     Ok(files) => {
-                        for file in &files {
-                            crawl(file, database).await?;
+                        for entry in &files {
+                            crawl(entry, database).await?;
                         }
                     },
                     Err(err) => { warn!("Skipped files in Folder {} because error occurred. {:?}", file.path, err); }
