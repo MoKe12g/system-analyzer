@@ -76,17 +76,27 @@ pub(crate) async fn crawl(input_file: &DirEntry, database: &Pool<Sqlite>) -> Res
     let file_type = input_file.file_type().await?;
     let file_metadata = input_file.metadata().await?;
     // create entry in database
-    let file = File::from_read_dir(&input_file, &file_type, &file_metadata).await;
+    let file = File::from_read_dir(input_file, &file_type, &file_metadata).await;
     sqlx::query!("INSERT INTO files (path, size, is_folder, package, is_changed) VALUES (?, ?, ?, NULL, NULL);",
     file.path, file.size, file.is_folder)
         .execute(database).await?; // TODO: Is it wise to dereference here?
     debug!("Added {} to the database", file.path);
+    // TODO: Improve performance using https://patrickfreed.github.io/rust/2021/10/15/making-slow-rust-code-fast.html
     // continue crawl
     if file_type.is_dir() {
-        let folder = fs::read_dir(input_file.path()).await?;
-        let files = get_files_from_directory(folder).await?;
-        for file in &files {
-            crawl(file, database).await?;
+        match fs::read_dir(input_file.path()).await {
+            Ok(folder) => {
+                let files = get_files_from_directory(folder).await;
+                match files {
+                    Ok(files) => {
+                        for file in &files {
+                            crawl(file, database).await?;
+                        }
+                    },
+                    Err(err) => { println!("Skipped files in Folder {} because error occurred. {:?}", file.path, err); }
+                }
+            },
+            Err(err) => { println!("Skiepped {} because error occurred. {:?}", file.path, err); }
         }
     }
     Ok(())

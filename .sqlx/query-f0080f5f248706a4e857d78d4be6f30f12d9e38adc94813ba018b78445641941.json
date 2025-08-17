@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO files (path, size, is_folder, package, is_changed) VALUES (?, ?, ?, NULL, NULL);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f0080f5f248706a4e857d78d4be6f30f12d9e38adc94813ba018b78445641941"
+}

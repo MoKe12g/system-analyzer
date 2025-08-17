@@ -8,7 +8,7 @@ use tokio::fs;
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
     let _database_url = "sqlite://database.sqlite";
-    let root_dir_str = "/";
+    let root_dir_str = "/home/quantenregen/Schreibtisch/test-bookworm/";
     let _excluded_dirs = ["tmp", "home", "proc", "dev", "sys"];
     let _threads = 4;
 
@@ -16,15 +16,6 @@ async fn main() -> Result<(), sqlx::Error> {
 
     let root_dir = fs::read_dir(root_dir_str).await?;
     let files = crawler::get_files_from_directory(root_dir).await?;
-
-    /*let threaded_rt = Runtime::new()?;
-    threaded_rt.block_on(async {
-        // crawl the file system for files and directories
-        */for file in &files {
-        crawler::crawl(file, &database).await?;
-    }/*
-        Ok::<(), Error>(())
-    })?;*/
 
     // filter virtual directories
     let filtered_files = files.iter()
@@ -34,8 +25,11 @@ async fn main() -> Result<(), sqlx::Error> {
                     .contains(&entry.file_name().to_str().unwrap())
             })
         .collect::<Vec<_>>();
-    for entry in files {
-        println!("{:?}", entry);
+
+
+    // crawl the file system for files and directories
+    for file in &filtered_files {
+        crawler::crawl(file, &database).await?;
     }
 
     // Test insertion as an example for using the database
@@ -52,7 +46,7 @@ async fn create_database_connection(database_url: &str) -> Result<Pool<Sqlite>, 
         .journal_mode(SqliteJournalMode::Wal);
 
     let database = SqlitePoolOptions::new()
-        .max_connections(5)
+        .max_connections(25)
         .connect_with(sqlite_options)
         .await?;
 
