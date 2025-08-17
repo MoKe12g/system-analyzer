@@ -1,3 +1,4 @@
+PRAGMA foreign_keys = ON;
 create table dpkg_packages
 (
     package_name TEXT
@@ -13,5 +14,6 @@ create table files
     size       integer                  not null,
     is_folder  boolean                  not null,
     package    TEXT,
-    is_changed boolean                  not null
+    is_changed boolean not null,
+    FOREIGN KEY (package) REFERENCES dpkg_packages (package_name) on delete set null -- https://sqlite.org/foreignkeys.html
 );
