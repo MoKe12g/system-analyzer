@@ -1,6 +1,9 @@
 mod crawler;
+mod dpkg_integration;
 
+use crate::dpkg_integration::Package;
 use dpkg_query_json::dpkg_list_packages::DpkgListPackages;
+use dpkg_query_json::dpkg_options::DpkgOptions;
 use log::info;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
@@ -43,19 +46,33 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // create list of installed packages via dpkg
-    let packages =
-        DpkgListPackages::new(
-            vec![
-                String::from("Package"),
-                String::from("Version"),
-                String::from("Status")],
-            vec![])
-            .json();
+    let mut dpkg_list_packages_operation = DpkgListPackages::new(
+        vec![
+            String::from("Package"),
+            String::from("Version"),
+            //String::from("Status")
+        ],
+        vec![]);
+    dpkg_list_packages_operation.set_options(DpkgOptions::new().set_root_dir(root_dir_str.to_string()));
 
-    // Test insertion as an example for using the database
-    sqlx::query!("INSERT OR IGNORE INTO dpkg_packages (package_name, version, date_installed) VALUES (?, ?, CURRENT_TIMESTAMP)",
-    "system-analyzer", "0.1a")
-        .execute(&database).await?;
+    let packages_raw = dpkg_list_packages_operation.json_string();
+    let packages: Vec<Package> = serde_json::from_str(&packages_raw)?;
+    println!("Packages: {:?}", packages);
+
+    // for every package
+    for package in packages {
+        let package_name = package.get_package();
+        let version = package.get_version();
+        // add packages to database
+        sqlx::query!("INSERT INTO dpkg_packages (package_name, version, date_installed) VALUES (?, ?, NULL);",
+        package_name, version)
+            .execute(&database).await?;
+    }
+
+    // TODO: Create list of file and hash sums of all installed files
+    // TODO: Go through that list and check if file was changed
+    // TODO: If the file was changed, then write that into the database
+
     Ok(())
 }
 
