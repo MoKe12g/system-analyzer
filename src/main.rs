@@ -1,9 +1,12 @@
 mod crawler;
+mod dpkg_integration;
 
+use crate::dpkg_integration::{create_package_list};
 use log::info;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
 use std::str::FromStr;
+use std::string::String;
 use tokio::fs;
 
 #[tokio::main]
@@ -40,10 +43,25 @@ async fn main() -> anyhow::Result<()> {
         crawler::crawl(file, &database).await?;
     }
 
-    // Test insertion as an example for using the database
-    sqlx::query!("INSERT OR IGNORE INTO dpkg_packages (package_name, version, date_installed) VALUES (?, ?, CURRENT_TIMESTAMP)",
-    "system-analyzer", "0.1a")
-        .execute(&database).await?;
+    // create list of installed packages via dpkg
+
+    let packages = create_package_list(root_dir_str)?;
+    println!("Packages: {:?}", packages);
+
+    // for every package
+    for package in packages {
+        let package_name = package.get_package();
+        let version = package.get_version();
+        // add packages to database
+        sqlx::query!("INSERT INTO dpkg_packages (package_name, version, date_installed) VALUES (?, ?, NULL);",
+        package_name, version)
+            .execute(&database).await?;
+    }
+
+    // TODO: Create list of file and hash sums of all installed files
+    // TODO: Go through that list and check if file was changed
+    // TODO: If the file was changed, then write that into the database
+
     Ok(())
 }
 
