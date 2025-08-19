@@ -1,9 +1,7 @@
 mod crawler;
 mod dpkg_integration;
 
-use crate::dpkg_integration::Package;
-use dpkg_query_json::dpkg_list_packages::DpkgListPackages;
-use dpkg_query_json::dpkg_options::DpkgOptions;
+use crate::dpkg_integration::{create_package_list};
 use log::info;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
@@ -46,17 +44,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // create list of installed packages via dpkg
-    let mut dpkg_list_packages_operation = DpkgListPackages::new(
-        vec![
-            String::from("Package"),
-            String::from("Version"),
-            //String::from("Status")
-        ],
-        vec![]);
-    dpkg_list_packages_operation.set_options(DpkgOptions::new().set_root_dir(root_dir_str.to_string()));
 
-    let packages_raw = dpkg_list_packages_operation.json_string();
-    let packages: Vec<Package> = serde_json::from_str(&packages_raw)?;
+    let packages = create_package_list(root_dir_str)?;
     println!("Packages: {:?}", packages);
 
     // for every package

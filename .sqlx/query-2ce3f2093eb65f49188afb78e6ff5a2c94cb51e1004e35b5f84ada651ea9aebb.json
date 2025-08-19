@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO dpkg_packages (package_name, version, date_installed) VALUES (?, ?, NULL);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "2ce3f2093eb65f49188afb78e6ff5a2c94cb51e1004e35b5f84ada651ea9aebb"
+}
